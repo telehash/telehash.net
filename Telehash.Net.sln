@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telehash.Net-Tests", "Telehash.Net-Tests\Telehash.Net-Tests.csproj", "{F29F3A9D-9652-4458-B517-EDA5A45B26FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telehash.Net", "Telehash.Net\Telehash.Net.csproj", "{12E4A93A-8D28-46F1-A46C-9BE77FB3FE60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chatter", "Chatter\Chatter.csproj", "{D682037B-1D74-4B43-8176-8F233AD7BD51}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{12E4A93A-8D28-46F1-A46C-9BE77FB3FE60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12E4A93A-8D28-46F1-A46C-9BE77FB3FE60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12E4A93A-8D28-46F1-A46C-9BE77FB3FE60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12E4A93A-8D28-46F1-A46C-9BE77FB3FE60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D682037B-1D74-4B43-8176-8F233AD7BD51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D682037B-1D74-4B43-8176-8F233AD7BD51}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D682037B-1D74-4B43-8176-8F233AD7BD51}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D682037B-1D74-4B43-8176-8F233AD7BD51}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F29F3A9D-9652-4458-B517-EDA5A45B26FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F29F3A9D-9652-4458-B517-EDA5A45B26FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F29F3A9D-9652-4458-B517-EDA5A45B26FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F29F3A9D-9652-4458-B517-EDA5A45B26FC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

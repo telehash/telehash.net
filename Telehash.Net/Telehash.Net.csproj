@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{12E4A93A-8D28-46F1-A46C-9BE77FB3FE60}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Telehash</RootNamespace>
+    <AssemblyName>Telehash.Net</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.6\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Crypto">
+      <HintPath>..\Lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="E3X\Channel.cs" />
+    <Compile Include="E3X\CipherSet.cs" />
+    <Compile Include="E3X\Packet.cs" />
+    <Compile Include="Base32.cs" />
+    <Compile Include="Hashname.cs" />
+    <Compile Include="E3X\Exchange.cs" />
+    <Compile Include="Mesh.cs" />
+    <Compile Include="E3X\CipherSet2a.cs" />
+    <Compile Include="E3X\CipherSet1a.cs" />
+    <Compile Include="E3X\ECKeyPair.cs" />
+    <Compile Include="E3X\Self.cs" />
+    <Compile Include="E3X\KeyPair.cs" />
+    <Compile Include="E3X\Helpers.cs" />
+    <Compile Include="Link.cs" />
+    <Compile Include="ITransport.cs" />
+    <Compile Include="Transports\UDPTransport.cs" />
+    <Compile Include="Pipe.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Transports\" />
+  </ItemGroup>
+</Project>
