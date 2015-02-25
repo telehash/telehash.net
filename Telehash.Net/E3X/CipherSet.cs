@@ -11,7 +11,8 @@ namespace Telehash.E3X
 		void GenerateEphemeralKeys (ICipherSetRemoteInfo remoteInfo);
 		void LoadKeys(byte[] publicKeyData, byte[] privateKeyData);
 		Packet MessageEncrypt (ICipherSetRemoteInfo remoteInfo, Packet inner);
-		Packet MessageDecrypt (ICipherSetRemoteInfo remoteInfo, Packet outer);
+		Packet MessageDecrypt (Packet outer);
+		bool MessageVerify (ICipherSetRemoteInfo remoteInfo, Packet outer);
 		Packet ChannelEncrypt(ICipherSetChannelInfo info, Packet inner);
 		Packet ChannelDecrypt(ICipherSetChannelInfo info, Packet outer);
 	}

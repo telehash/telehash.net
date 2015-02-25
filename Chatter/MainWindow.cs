@@ -11,6 +11,15 @@ public partial class MainWindow: Gtk.Window
 	{
 		Build ();
 		mesh = new Mesh ();
+		mesh.Generate ();
+
+		textview2.Buffer.Text += "Hashname: " + mesh.Hashname + "\n";
+
+		var builder = new UriBuilder (mesh.URI);
+		builder.Host = "127.0.0.1";
+		builder.Port = 8989;
+		textview2.Buffer.Text += builder.ToString () + "\n";
+
 		udp = new UDPTransport (new System.Net.IPEndPoint (System.Net.IPAddress.Any, 8989));
 		udp.Listen (mesh);
 		mesh.DebugLogEvent += new DebugLogHandler (OnDebugLog);
@@ -24,6 +33,6 @@ public partial class MainWindow: Gtk.Window
 
 	void OnDebugLog(string message)
 	{
-		textview2.Buffer.Text += message;
+		textview2.Buffer.Text += message + "\n";
 	}
 }

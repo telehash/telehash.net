@@ -40,6 +40,57 @@ namespace Telehash
 			//return val - (val < 58 ? 48 : (val < 97 ? 55 : 87));
 		}
 
+		/// <summary>
+		/// From a single given key create a hashname with the intermediate hashes of other keys
+		/// </summary>
+		/// <returns>The key.</returns>
+		/// <param name="csid">The identifier for the cipher set as a string.</param>
+		/// <param name="keyData">The key data for the given csid.</param>
+		/// <param name="intermediates">Intermediates.</param>
+		public static string FromKey(string csid, byte[] keyData, IDictionary<string, string> intermediates)
+		{
+			Sha256Digest digest = new Sha256Digest ();
+			List<string> keys = new List<string>(intermediates.Keys);
+			keys.Add (csid);
+			keys.Sort ();
+
+			int digestSize = digest.GetDigestSize ();
+			byte[] outhash = null;
+			foreach (var key in keys) {
+				if (outhash != null) {
+					digest.BlockUpdate (outhash, 0, digestSize);
+				} else {
+					outhash = new byte[digestSize];
+				}
+				byte inByte;
+				try {
+					inByte = Convert.ToByte (key, 16);
+				} catch(FormatException) {
+					return null;
+				} catch(OverflowException) {
+					return null;
+				} catch (ArgumentException) {
+					return null;
+				}
+				digest.Update (inByte);
+				digest.DoFinal (outhash, 0);
+				digest.Reset ();
+
+				digest.BlockUpdate (outhash, 0, digestSize);
+				if (key == csid) {
+					Sha256Digest keyDigest = new Sha256Digest ();
+					keyDigest.BlockUpdate (keyData, 0, keyData.Length);
+					keyDigest.DoFinal (outhash, 0);
+					digest.BlockUpdate (outhash, 0, outhash.Length);
+				} else {
+					byte[] keyIntermediate = Base32Encoder.Decode (intermediates [key]);
+					digest.BlockUpdate (keyIntermediate, 0, keyIntermediate.Length);
+				}
+				digest.DoFinal (outhash, 0);
+			}
+			return Base32Encoder.Encode (outhash).TrimEnd(trimChars).ToLower();
+		}
+
 		public static string FromKeys(IDictionary<string, string> publicKeys) {
 			// You've gotta have some keys to hash!
 			if (publicKeys.Count <= 0)

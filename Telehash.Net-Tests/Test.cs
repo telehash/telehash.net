@@ -114,7 +114,7 @@ namespace Telehash.NetTests
 			remoteSelf.CipherSets.Add (0x1a, remoteCs);
 			CS1ARemoteInfo ri = new CS1ARemoteInfo ();
 			ri.RemotePublicKey = A_KEY;
-			var decryptedPacket = remoteCs.MessageDecrypt (ri, outPacket);
+			var decryptedPacket = remoteCs.MessageDecrypt (outPacket);
 
 			System.Diagnostics.Debug.Write (decryptedPacket);
 		}

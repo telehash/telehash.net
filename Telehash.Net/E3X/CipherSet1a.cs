@@ -110,39 +110,11 @@ namespace Telehash.E3X
 			return outPacket;
 		}
 
-		public Packet MessageDecrypt(ICipherSetRemoteInfo remoteInfo, Packet outer)
+		public Packet MessageDecrypt(Packet outer)
 		{
-			CS1ARemoteInfo ri = (CS1ARemoteInfo)remoteInfo;
-
 			byte[] remoteKeyData = outer.Body.Take(21).ToArray();
 			byte[] ivData = outer.Body.Skip(21).Take(4).ToArray();
 			byte[] innerEncryptedData = outer.Body.Skip(25).Take(outer.Body.Length - 29).ToArray();
-			byte[] hmacData = outer.Body.Skip(outer.Body.Length - 4).Take(4).ToArray();
-
-			// Check the hmac to validate the packet
-			var agreedHMacKeyData = ECDHAgree (ri.RemotePublicKey, Key.PrivateKey).ToByteArray ();
-			byte[] hmacKey = new byte[24];
-			if (agreedHMacKeyData.Length != 20) {
-				// It's not a correct agreed value, expected 20 bytes
-				return null;
-			}
-			Buffer.BlockCopy (agreedHMacKeyData, 0, hmacKey, 0, 20);
-			Buffer.BlockCopy (ivData, 0, hmacKey, 20, 4);
-
-			var hmac = new HMac (new Sha256Digest ());
-			byte[] fullIv = new byte[16];
-			Array.Clear (fullIv, 0, 16);
-			Buffer.BlockCopy (ivData, 0, fullIv, 0, 4);
-			hmac.Init(new KeyParameter (hmacKey, 0, 24));
-			hmac.BlockUpdate(outer.Body, 0, outer.Body.Length - 4);
-			byte[] mac = new byte[hmac.GetMacSize()];
-			hmac.DoFinal(mac, 0);
-			var macValue = Helpers.Fold (mac, 3);
-
-			if (!macValue.SequenceEqual (hmacData)) {
-				// The hmacs did not match, blow up the world
-				return null;
-			}
 
 			// Decode the body
 			ECKeyPair remoteEphemeralKeys = ECKeyPair.LoadKeys (SecNamedCurves.GetByName ("secp160r1"), remoteKeyData, null);
@@ -164,9 +136,43 @@ namespace Telehash.E3X
 			var offset = cipher.ProcessBytes (innerEncryptedData, decryptedBody, 0);
 			cipher.DoFinal (decryptedBody, offset);
 
-			Packet outPacket = new Packet (decryptedBody);
+			Packet outPacket = Packet.DecodePacket (decryptedBody);
 
 			return outPacket;
+		}
+
+		public bool MessageVerify (ICipherSetRemoteInfo remoteInfo, Packet outer)
+		{
+			CS1ARemoteInfo ri = (CS1ARemoteInfo)remoteInfo;
+			byte[] ivData = outer.Body.Skip(21).Take(4).ToArray();
+			byte[] hmacData = outer.Body.Skip(outer.Body.Length - 4).Take(4).ToArray();
+
+			// Check the hmac to validate the packet
+			var agreedHMacKeyData = ECDHAgree (ri.RemotePublicKey, Key.PrivateKey).ToByteArray ();
+			byte[] hmacKey = new byte[24];
+			if (agreedHMacKeyData.Length != 20) {
+				// It's not a correct agreed value, expected 20 bytes
+				return false;
+			}
+			Buffer.BlockCopy (agreedHMacKeyData, 0, hmacKey, 0, 20);
+			Buffer.BlockCopy (ivData, 0, hmacKey, 20, 4);
+
+			var hmac = new HMac (new Sha256Digest ());
+			byte[] fullIv = new byte[16];
+			Array.Clear (fullIv, 0, 16);
+			Buffer.BlockCopy (ivData, 0, fullIv, 0, 4);
+			hmac.Init(new KeyParameter (hmacKey, 0, 24));
+			hmac.BlockUpdate(outer.Body, 0, outer.Body.Length - 4);
+			byte[] mac = new byte[hmac.GetMacSize()];
+			hmac.DoFinal(mac, 0);
+			var macValue = Helpers.Fold (mac, 3);
+
+			if (!macValue.SequenceEqual (hmacData)) {
+				// The hmacs did not match, blow up the world
+				return false;
+			}
+
+			return true;
 		}
 
 		public Packet ChannelEncrypt(ICipherSetChannelInfo channelInfo, Packet inner)
@@ -267,7 +273,7 @@ namespace Telehash.E3X
 			bufferCipher.DoFinal (decryptedData, offset);
 
 			// Build a packet and ship it off
-			return new Packet (decryptedData);
+			return Packet.DecodePacket (decryptedData);
 		}
 
 		BigInteger ECDHAgree(byte[] publicKey, byte[] privateKey)

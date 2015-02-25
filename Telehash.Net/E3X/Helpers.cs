@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace Telehash.E3X
 {
@@ -32,6 +35,24 @@ namespace Telehash.E3X
 			}
 			
 			return outBuffer;
+		}
+
+
+		// From http://stackoverflow.com/questions/623104/byte-to-hex-string/18574846#18574846
+		public static string[] HexTbl = Enumerable.Range(0, 256).Select(v => v.ToString("x2")).ToArray();
+		public static string ToHex(IEnumerable<byte> array)
+		{
+			StringBuilder s = new StringBuilder();
+			foreach (var v in array)
+				s.Append(HexTbl[v]);
+			return s.ToString();
+		}
+		public static string ToHex(byte[] array)
+		{
+			StringBuilder s = new StringBuilder(array.Length*2);
+			foreach (var v in array)
+				s.Append(HexTbl[v]);
+			return s.ToString();
 		}
 	}
 }

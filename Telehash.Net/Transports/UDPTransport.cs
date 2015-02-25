@@ -32,7 +32,7 @@ namespace Telehash
 			Task.Run (async () => {
 				while (KeepListening) {
 					var received = await client.ReceiveAsync();
-					mesh.DebugLog("We got some data: " + Encoding.UTF8.GetString(received.Buffer) + "\n");
+					mesh.DebugLog("We got some data: " + Helpers.ToHex(received.Buffer) + "\n");
 
 					var pipe = GetPipe(received.RemoteEndPoint);
 					mesh.DebugLog("Pipe is " + pipe.ToString() + "\n");
@@ -40,7 +40,7 @@ namespace Telehash
 						mesh.DebugLog("No pipe, we're bailing");
 						continue;
 					}
-					var packet = new Packet(received.Buffer);
+					var packet = Packet.Decloak(received.Buffer);
 					mesh.DebugLog("Packet is here");
 					if (packet == null || packet.FullPacket == null) {
 						mesh.DebugLog("No packet bailing");

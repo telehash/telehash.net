@@ -81,6 +81,10 @@ namespace Telehash
 			return new string(outputBuffer);
 		}
 
+		public static string EncodeStripped(byte[] buffer) {
+			return Encode(buffer).Trim('=').ToLower();
+		}
+
 		/// <summary>
 		/// Takes a base 32 encoded value and converts it back to binary data
 		/// </summary>

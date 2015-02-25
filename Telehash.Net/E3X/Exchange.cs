@@ -7,9 +7,9 @@ namespace Telehash.E3X
 {
 	public class Exchange
 	{
-		public Self Local;
-		public byte[] Token;
-
+		public Self Local { get; set; }
+		public byte[] Token { get; set; }
+		public uint OutAt { get; set; }
 
 		uint currentAt;
 		ICipherSetRemoteInfo remoteInfo;

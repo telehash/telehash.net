@@ -18,6 +18,11 @@ namespace Telehash.E3X
 		/// <param name="outer">A packet to attempt to decrypt</param>
 		public Packet Decrypt(Packet outer) 
 		{
+			ICipherSet cs;
+			if (CipherSets.TryGetValue (outer.HeadBytes [0], out cs)) {
+				return cs.MessageDecrypt (outer);
+			}
+
 			return null;
 		}
 	}
