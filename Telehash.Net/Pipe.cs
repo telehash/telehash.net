@@ -1,10 +1,13 @@
 ﻿using System;
+using Telehash.E3X;
 
 namespace Telehash
 {
-	public class Pipe
+	public interface Pipe
 	{
-		public ITransport Transport { get; set; }
+		ITransport Transport { get; set; }
+
+		void Send(Packet packet);
 	}
 }
 

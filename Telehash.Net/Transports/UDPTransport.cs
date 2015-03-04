@@ -10,7 +10,14 @@ namespace Telehash
 {
 	public class UDPPipe : Pipe
 	{
+		public ITransport Transport { get; set; }
+		public UdpClient Client { get; set; }
 		public IPEndPoint remoteEndpoint { get; set; }
+		public void Send (Packet packet)
+		{
+			packet.Encode ();
+			Client.Send (packet.FullPacket, packet.FullPacket.Length, remoteEndpoint);
+		}
 	}
 
 	public class UDPTransport : ITransport
@@ -61,6 +68,8 @@ namespace Telehash
 			}
 
 			var newPipe = new UDPPipe ();
+			newPipe.Transport = this;
+			newPipe.Client = client;
 			newPipe.remoteEndpoint = remoteEndpoint;
 			pipes.Add (newPipe);
 

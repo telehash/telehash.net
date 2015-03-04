@@ -184,9 +184,11 @@ namespace Telehash
 
 				Link newLink = new Link (fromHashname);
 				newLink.Exchange = new Exchange (self, 0x1a, inner.Body);
-				newLink.Exchange.OutAt = packet.Head ["at"];
+				newLink.Exchange.OutAt = (uint)inner.Head["at"];
 				newLink.Pipes.Add (pipe);
-				Links.Add (newLink);
+				Links.Add (fromHashname, newLink);
+
+				pipe.Send (newLink.Exchange.Handshake (0x1a, true));
 			}
 
 			DebugLog ("We're out\n");

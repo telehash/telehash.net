@@ -49,7 +49,7 @@ namespace Telehash.E3X
 		/// <summary>
 		/// Generate a handshake packet for the current keys
 		/// </summary>
-		public Packet Handshake(byte csid)
+		public Packet Handshake(byte csid, bool isReply = false)
 		{
 			Packet inner = new Packet ();
 			foreach (var csItem in Local.CipherSets) {
@@ -60,7 +60,11 @@ namespace Telehash.E3X
 					inner.Head.Add (csItem.Value.CSID.ToString (), Base32Encoder.Encode (csItem.Value.Keys.PublicKey));
 				}
 			}
-			inner.Head.Add ("at", currentAt++);
+			if (isReply) {
+				inner.Head.Add ("at", OutAt);
+			} else {
+				inner.Head.Add ("at", currentAt++);
+			}
 
 			inner.Encode ();
 			Packet outer = Local.CipherSets[csid].MessageEncrypt(remoteInfo, inner);
