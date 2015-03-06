@@ -16,8 +16,6 @@ namespace Telehash
 		public void Send (Packet packet)
 		{
 			var sendData = packet.Cloak ();
-
-			var hexData = Helpers.ToHexSring (sendData);
 			Client.Send (sendData, sendData.Length, remoteEndpoint);
 		}
 	}

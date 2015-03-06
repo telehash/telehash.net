@@ -7,18 +7,24 @@ namespace Telehash.E3X
 {
 	public class Exchange
 	{
+		public enum HashOrder
+		{
+			Low,
+			High
+		}
+
 		public Self Local { get; set; }
 		public byte[] Token { get; set; }
 		public uint OutAt { get; set; }
+		public HashOrder Order { get; set; }
+		public uint At { get; set; }
 
-		uint currentAt;
 		ICipherSetRemoteInfo remoteInfo;
 		ICipherSet cipherSet;
 
 		public Exchange (Self localIdentity, byte csid, byte[] publicKey)
 		{
 			Token = new byte[16];
-			currentAt = 1;
 
 			Local = localIdentity;
 
@@ -27,6 +33,20 @@ namespace Telehash.E3X
 			ri.RemotePublicKey = publicKey;
 			cipherSet.GenerateEphemeralKeys (ri);
 			remoteInfo = ri;
+
+			var idKey = localIdentity.CipherSets [csid].Keys.PublicKey;
+			for (int i = 0; i < publicKey.Length; ++i) {
+				if (publicKey [i] == idKey [i]) {
+					continue;
+				}
+				if (publicKey [i] > idKey [i]) {
+					Order = HashOrder.High;
+					At = 1;
+				} else {
+					Order = HashOrder.Low;
+					At = 2;
+				}
+			}
 		}
 
 		public bool Verify(Packet msg)
@@ -65,8 +85,9 @@ namespace Telehash.E3X
 			if (isReply) {
 				inner.Head.Add ("at", OutAt);
 			} else {
-				inner.Head.Add ("at", currentAt++);
+				inner.Head.Add ("at", NextAt());
 			}
+			inner.Head.Add ("csid", csid.ToString ("x2"));
 			keyPacket.Encode ();
 			inner.Body = keyPacket.FullPacket;
 			inner.Encode ();
@@ -78,6 +99,12 @@ namespace Telehash.E3X
 			outer.Encode ();
 
 			return outer;
+		}
+
+		uint NextAt()
+		{
+			At += 2;
+			return At;
 		}
 	}
 }

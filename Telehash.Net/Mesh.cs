@@ -209,6 +209,19 @@ namespace Telehash
 				Link curLink;
 				if (Links.TryGetValue (fromHashname, out curLink)) {
 					// TODO:  Replace an existing link
+					JToken atToken;
+					if (!inner.Head.TryGetValue ("at", out atToken)) {
+						DebugLog ("No at value was found on handshake");
+						return;
+					}
+					if (curLink.Exchange.At == atToken.Value<uint> ()) {
+						if (!curLink.Handshake (inner)) {
+							DebugLog ("Could not finish handshake");
+							return;
+						}
+						LinkUp (curLink);
+						DebugLog ("Start using channels?");
+					}
 					return;
 				} else {
 					// TODO:  Method to approve or reject the hashname?

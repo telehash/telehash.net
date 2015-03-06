@@ -47,6 +47,9 @@ namespace TextChatter
 			Mesh = new Mesh ();
 			Mesh.Generate ();
 
+			foreach (var cs in Mesh.Self.CipherSets) {
+				Console.WriteLine ("{0}: {1}", cs.Key.ToString ("x2"), Telehash.Base32Encoder.EncodeStripped (cs.Value.Keys.PublicKey));
+			}
 			Console.WriteLine ("Hashname: " + Mesh.Hashname);
 
 			var builder = new UriBuilder (Mesh.URI);

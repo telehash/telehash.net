@@ -33,8 +33,10 @@ namespace Telehash
 
 		public bool Handshake(Packet outer)
 		{
-			Exchange = new Exchange (Mesh.Self, 0x1a, outer.Body);
-			Exchange.OutAt = (uint)outer.Head ["at"];
+			if (Exchange == null) {
+				Exchange = new Exchange (Mesh.Self, 0x1a, outer.Body);
+				Exchange.OutAt = (uint)outer.Head ["at"];
+			}
 			if (!Exchange.Verify (outer)) {
 				return false;
 			}
@@ -46,7 +48,7 @@ namespace Telehash
 		public void AddPipe(Pipe pipe)
 		{
 			Pipes.Add (pipe);
-			pipe.Send (Exchange.Handshake (0x1a, true));
+			pipe.Send (Exchange.Handshake (0x1a));
 		}
 
 		public void Receive(Packet packet, Pipe pipe)
