@@ -60,7 +60,7 @@ namespace Telehash.E3X
 			var agreedValue = ECDHAgree (ri.RemotePublicKey, ri.EphemeralKeys.PrivateKey);
 
 			// Hash the agreed key
-			var hashedValue = SHA256Hash (agreedValue.ToByteArray ());
+			var hashedValue = SHA256Hash (Helpers.ToByteArray(agreedValue, 20));
 
 			// Fold to get the actual key for AES
 			byte[] aesKey = Helpers.Fold (hashedValue);
@@ -92,7 +92,7 @@ namespace Telehash.E3X
 
 			// Mash on the IV for the compound key
 			byte[] macKey = new byte[24];
-			byte[] idAgreedValueArray = idAgreedValue.ToByteArray();
+			byte[] idAgreedValueArray = Helpers.ToByteArray(idAgreedValue, 20);
 			Buffer.BlockCopy(idAgreedValueArray, 0, macKey, 0, idAgreedValueArray.Length);
 			Buffer.BlockCopy(aesIV, 0, macKey, idAgreedValueArray.Length, 4);
 
@@ -120,7 +120,7 @@ namespace Telehash.E3X
 			ECKeyPair remoteEphemeralKeys = ECKeyPair.LoadKeys (SecNamedCurves.GetByName ("secp160r1"), remoteKeyData, null);
 
 			var idAgreement = ECDHAgree (remoteEphemeralKeys.PublicKey, Key.PrivateKey);
-			var agreedHash = SHA256Hash (idAgreement.ToByteArray ());
+			var agreedHash = SHA256Hash (Helpers.ToByteArray (idAgreement, 20));
 			var aesKey = Helpers.FoldOnce(agreedHash);
 
 			// Pad out the IV
@@ -148,7 +148,7 @@ namespace Telehash.E3X
 			byte[] hmacData = outer.Body.Skip(outer.Body.Length - 4).Take(4).ToArray();
 
 			// Check the hmac to validate the packet
-			var agreedHMacKeyData = ECDHAgree (ri.RemotePublicKey, Key.PrivateKey).ToByteArray ();
+			var agreedHMacKeyData = Helpers.ToByteArray (ECDHAgree (ri.RemotePublicKey, Key.PrivateKey), 20);
 			byte[] hmacKey = new byte[24];
 			if (agreedHMacKeyData.Length != 20) {
 				// It's not a correct agreed value, expected 20 bytes
@@ -175,9 +175,9 @@ namespace Telehash.E3X
 			return true;
 		}
 
-		public Packet ChannelEncrypt(ICipherSetChannelInfo channelInfo, Packet inner)
+		public Packet ChannelEncrypt(ICipherSetRemoteInfo channelInfo, Packet inner)
 		{
-			CS1AChannelInfo ci = (CS1AChannelInfo)channelInfo;
+			var ci = (CS1ARemoteInfo)channelInfo;
 
 			// TODO:  Validate we don't care about endianess of IV here
 
@@ -221,14 +221,14 @@ namespace Telehash.E3X
 			return outPacket;
 		}
 
-		public Packet ChannelDecrypt(ICipherSetChannelInfo channelInfo, Packet outer)
+		public Packet ChannelDecrypt(ICipherSetRemoteInfo channelInfo, Packet outer)
 		{
 			// We gotta have the primary components and something to decrypt
 			if (outer.Body.Length < 25) {
 				return null;
 			}
 
-			CS1AChannelInfo ci = (CS1AChannelInfo)channelInfo;
+			var ci = (CS1ARemoteInfo)channelInfo;
 
 			// Rip apart our packet
 			byte[] token = outer.Body.Take (16).ToArray ();
@@ -297,6 +297,27 @@ namespace Telehash.E3X
 			shaHash.DoFinal(hashedValue, 0);
 			return hashedValue;
 		}
+
+		public void Prepare(ICipherSetRemoteInfo info, Packet outer)
+		{
+			var ri = (CS1ARemoteInfo)info;
+
+
+			var secret = Helpers.ToByteArray(ECDHAgree (ri.RemoteEphemeralKey, ri.EphemeralKeys.PrivateKey), 20);
+			var shaBuffer = new byte[secret.Length + ri.RemoteEphemeralKey.Length + ri.EphemeralKeys.PublicKey.Length];
+
+			Buffer.BlockCopy (secret, 0, shaBuffer, 0, secret.Length);
+			Buffer.BlockCopy (ri.RemoteEphemeralKey, 0, shaBuffer, secret.Length, ri.RemoteEphemeralKey.Length);
+			Buffer.BlockCopy (ri.EphemeralKeys.PublicKey, 0, shaBuffer, secret.Length + ri.RemoteEphemeralKey.Length, ri.EphemeralKeys.PublicKey.Length);
+			ri.EncryptionKey = Helpers.FoldOnce (SHA256Hash (shaBuffer));
+
+			Buffer.BlockCopy (ri.EphemeralKeys.PublicKey, 0, shaBuffer, secret.Length, ri.EphemeralKeys.PublicKey.Length);
+			Buffer.BlockCopy (ri.RemoteEphemeralKey, 0, shaBuffer, secret.Length + ri.EphemeralKeys.PublicKey.Length, ri.RemoteEphemeralKey.Length);
+			ri.DecryptionKey = Helpers.FoldOnce (SHA256Hash (shaBuffer));
+
+			ri.IV = 1;
+
+		}
 	}
 
 	public class CS1ARemoteInfo : ICipherSetRemoteInfo
@@ -304,15 +325,10 @@ namespace Telehash.E3X
 		public byte[] RemotePublicKey;
 		public byte[] RemoteEphemeralKey;
 		public ECKeyPair EphemeralKeys;
+		public byte[] Token { get; set; }
+		public byte[] EncryptionKey { get; set; }
+		public byte[] DecryptionKey { get; set; }
+		public uint IV { get; set; }
 	}
-
-	public class CS1AChannelInfo : ICipherSetChannelInfo
-	{
-		public byte[] Token;
-		public uint IV;
-		public byte[] EncryptionKey;
-		public byte[] DecryptionKey;
-	}
-
 }
 

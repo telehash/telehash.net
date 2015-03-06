@@ -4,19 +4,18 @@ using System.IO;
 using Telehash.E3X;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
+using System.Web;
 
 namespace Telehash
 {
-	public class JsonIdentity
-	{
-
-	}
-
 	public delegate void DebugLogHandler(string message);
+	public delegate void LinkUpHandler(Link link);
 
 	public class Mesh
 	{
 		public event DebugLogHandler DebugLogEvent;
+		public event LinkUpHandler LinkUp;
 
 		Self self;
 		public E3X.Self Self { 
@@ -74,9 +73,39 @@ namespace Telehash
 		/// <summary>
 		/// Create a new Link from the given url
 		/// </summary>
-		public Link Add(string addUrl)
+		public Link Add(Uri addUrl)
 		{
-			return null;
+			var keys = new Dictionary<string, string> ();
+
+			var parts = HttpUtility.ParseQueryString (addUrl.Query);
+			foreach (string csname in parts) {
+				foreach (var key in parts.GetValues(csname)) {
+					keys.Add(csname.Substring(2), key);
+				}
+			}
+
+			if (keys.Count == 0) {
+				DebugLog ("There we no keys in the given URI");
+				return null;
+			}
+
+			var hashname = Telehash.Hashname.FromKeys (keys);
+
+			string keyData;
+			if (!keys.TryGetValue ("1a", out keyData)) {
+				DebugLogEvent ("A valid 1a key was not found");
+				return null;
+			}
+			byte[] remoteKey = Base32Encoder.Decode (keyData);
+
+			Link link;
+			if (Links.TryGetValue (hashname, out link)) {
+				// TODO:  Update the link?
+
+			} else {
+				link = new Link (this, hashname, remoteKey);
+			}
+			return link;
 		}
 
 		/// <summary>
@@ -106,9 +135,10 @@ namespace Telehash
 		public Uri URI {
 			get {
 				StringBuilder outString = new StringBuilder ();
-				outString.Append ("mesh://");
+				outString.Append ("link://");
 				outString.Append ("/?");
 				foreach (var cs in self.CipherSets) {
+					outString.Append ("cs");
 					outString.Append (cs.Key.ToString("x2"));
 					outString.Append ("=");
 					outString.Append (Base32Encoder.EncodeStripped(cs.Value.Keys.PublicKey));
@@ -137,58 +167,78 @@ namespace Telehash
 
 			DebugLog ("Received a packet: " + packet.ToDebugString());
 			DebugLog ("Head length: " + packet.HeadLength + "\n");
-			DebugLog ("First head byte: " + packet.HeadBytes [0] + "\n");
 
 			// Process handshakes
 			if (packet.HeadLength == 1) {
 				DebugLog ("Processing a handshake");
+
 				var inner = self.Decrypt (packet);
 				if (inner == null) {
 					DebugLog ("There was no inner packet\n");
 					return;
 				}
 				DebugLog ("Decrypted");
-				DebugLog (inner.ToDebugString());
+				DebugLog (inner.ToDebugString ());
 
 				DebugLog ("HERE");
 
 				JToken msgType;
-				bool gotValue = inner.Head.TryGetValue("type", out msgType);
+				bool gotValue = inner.Head.TryGetValue ("type", out msgType);
 
 				// TODO:  Handle other types correctly
-				if (gotValue && msgType.ToString() != "key") {
+				if (gotValue && msgType.ToString () != "link") {
 					DebugLog ("We can only handle key type messages right now\n");
 					return;
 				}
 
 				DebugLog ("Building hashname");
-				// Get the hashname
-				var hashKeys = new Dictionary<string, string> ();
-				foreach (var entry in inner.Head) {
-					// Skip the other head entries
-					if (entry.Key == "at" || entry.Key == "type") {
-						continue;
-					}
-					if (entry.Key.Length > 2) {
-						continue;
-					}
-
-					// TODO:  Move to the new inner packet syntax
-					hashKeys.Add (entry.Key, entry.Value.ToString());
+				// Get the hashname from the inner packet
+				var keyPacket = Packet.DecodePacket (inner.Body);
+				if (keyPacket == null) {
+					DebugLog ("No key packet was in the handshake");
+					return;
 				}
-
-				var fromHashname = Telehash.Hashname.FromKey ("1a", inner.Body, hashKeys);
+				var hashKeys = new Dictionary<string, string> ();
+				foreach (var entry in keyPacket.Head) {
+					// TODO:  Move to the new inner packet syntax
+					hashKeys.Add (entry.Key, entry.Value.ToString ());
+				}
+				var fromHashname = Telehash.Hashname.FromKey ("1a", keyPacket.Body, hashKeys);
 				DebugLog ("Incoming hashname: " + fromHashname);
 
-				// TODO:  Method to approve or reject the hashname?
+				Link curLink;
+				if (Links.TryGetValue (fromHashname, out curLink)) {
+					// TODO:  Replace an existing link
+					return;
+				} else {
+					// TODO:  Method to approve or reject the hashname?
 
-				Link newLink = new Link (fromHashname);
-				newLink.Exchange = new Exchange (self, 0x1a, inner.Body);
-				newLink.Exchange.OutAt = (uint)inner.Head["at"];
-				newLink.Pipes.Add (pipe);
-				Links.Add (fromHashname, newLink);
+					Link newLink = new Link (fromHashname);
+					newLink.Mesh = this;
+					if (!newLink.Handshake (inner)) {
+						DebugLog ("Invalid Handshake for Link");
+						return;
+					}
+					newLink.Pipes.Add (pipe);
 
-				pipe.Send (newLink.Exchange.Handshake (0x1a, true));
+					// We index both the hashname and the Token for different lookup cases
+					Links.Add (fromHashname, newLink);
+					Links.Add (Helpers.ToHexSring(newLink.Exchange.Token), newLink);
+
+					LinkUp (newLink);
+				}
+			} else if (packet.HeadLength == 0) {
+
+				byte[] token = packet.Body.Take(16).ToArray();
+				Link link;
+				if (Links.TryGetValue (Helpers.ToHexSring (token), out link)) {
+					var outer = link.Exchange.Receive (packet);
+					DebugLog ("We got a channel packet: " + outer.ToDebugString ());
+					link.Receive (outer, pipe);
+				} else {
+					DebugLog ("No known link for channel packet");
+					return;
+				}
 			}
 
 			DebugLog ("We're out\n");

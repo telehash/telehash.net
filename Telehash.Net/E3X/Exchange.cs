@@ -31,7 +31,7 @@ namespace Telehash.E3X
 
 		public bool Verify(Packet msg)
 		{
-			return false;
+			return cipherSet.MessageVerify (remoteInfo, msg);
 		}
 
 		public void Encrypt(Packet msg)
@@ -40,10 +40,12 @@ namespace Telehash.E3X
 
 		public void Sync(Packet handshake)
 		{
+			cipherSet.Prepare (remoteInfo, handshake);
 		}
 
-		public void Receive(IChannel channel)
+		public Packet Receive(Packet packet)
 		{
+			return cipherSet.ChannelDecrypt(remoteInfo, packet);
 		}
 
 		/// <summary>
@@ -52,12 +54,12 @@ namespace Telehash.E3X
 		public Packet Handshake(byte csid, bool isReply = false)
 		{
 			Packet inner = new Packet ();
+			Packet keyPacket = new Packet ();
 			foreach (var csItem in Local.CipherSets) {
 				if (csItem.Value.CSID == csid) {
-					inner.Head[csid.ToString()] = true;
-					inner.Body = csItem.Value.Keys.PublicKey;
+					keyPacket.Body = csItem.Value.Keys.PublicKey;
 				} else {
-					inner.Head.Add (csItem.Value.CSID.ToString (), Base32Encoder.Encode (csItem.Value.Keys.PublicKey));
+					keyPacket.Head.Add (csItem.Value.CSID.ToString (), Base32Encoder.Encode (csItem.Value.Keys.PublicKey));
 				}
 			}
 			if (isReply) {
@@ -65,13 +67,16 @@ namespace Telehash.E3X
 			} else {
 				inner.Head.Add ("at", currentAt++);
 			}
-
+			keyPacket.Encode ();
+			inner.Body = keyPacket.FullPacket;
 			inner.Encode ();
+
 			Packet outer = Local.CipherSets[csid].MessageEncrypt(remoteInfo, inner);
 			outer.HeadBytes = new byte[1];
 			outer.HeadLength = 1;
 			outer.HeadBytes [0] = csid;
 			outer.Encode ();
+
 			return outer;
 		}
 	}

@@ -13,12 +13,9 @@ namespace Telehash.E3X
 		Packet MessageEncrypt (ICipherSetRemoteInfo remoteInfo, Packet inner);
 		Packet MessageDecrypt (Packet outer);
 		bool MessageVerify (ICipherSetRemoteInfo remoteInfo, Packet outer);
-		Packet ChannelEncrypt(ICipherSetChannelInfo info, Packet inner);
-		Packet ChannelDecrypt(ICipherSetChannelInfo info, Packet outer);
-	}
-
-	public interface ICipherSetChannelInfo
-	{
+		Packet ChannelEncrypt(ICipherSetRemoteInfo info, Packet inner);
+		Packet ChannelDecrypt(ICipherSetRemoteInfo info, Packet outer);
+		void Prepare(ICipherSetRemoteInfo info, Packet outer);
 	}
 
 	public interface ICipherSetRemoteInfo

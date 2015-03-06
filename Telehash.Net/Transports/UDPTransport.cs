@@ -15,8 +15,10 @@ namespace Telehash
 		public IPEndPoint remoteEndpoint { get; set; }
 		public void Send (Packet packet)
 		{
-			packet.Encode ();
-			Client.Send (packet.FullPacket, packet.FullPacket.Length, remoteEndpoint);
+			var sendData = packet.Cloak ();
+
+			var hexData = Helpers.ToHexSring (sendData);
+			Client.Send (sendData, sendData.Length, remoteEndpoint);
 		}
 	}
 
@@ -39,9 +41,9 @@ namespace Telehash
 			Task.Run (async () => {
 				while (KeepListening) {
 					var received = await client.ReceiveAsync();
-					mesh.DebugLog("We got some data: " + Helpers.ToHex(received.Buffer) + "\n");
+					mesh.DebugLog("We got some data: " + Helpers.ToHexSring(received.Buffer) + "\n");
 
-					var pipe = GetPipe(received.RemoteEndPoint);
+					var pipe = PipeTo(received.RemoteEndPoint);
 					mesh.DebugLog("Pipe is " + pipe.ToString() + "\n");
 					if (pipe == null) {
 						mesh.DebugLog("No pipe, we're bailing");
@@ -54,12 +56,17 @@ namespace Telehash
 						continue;
 					}
 
+					try {
 					mesh.Receive(pipe, packet);
+					} catch(Exception ex) {
+						mesh.DebugLog(ex.Message);
+						mesh.DebugLog(ex.StackTrace);
+					}
 				}
 			});
 		}
 
-		UDPPipe GetPipe(IPEndPoint remoteEndpoint)
+		public UDPPipe PipeTo(IPEndPoint remoteEndpoint)
 		{
 			foreach (var pipe in pipes) {
 				if (pipe.remoteEndpoint == remoteEndpoint) {

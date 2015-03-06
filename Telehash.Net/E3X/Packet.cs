@@ -118,7 +118,7 @@ namespace Telehash.E3X
 			sb.AppendLine ("Packet\n======");
 			sb.AppendFormat ("Head Length: {0}\n", HeadLength);
 			if (HeadLength < 7 && HeadLength > 0) {
-				sb.AppendFormat ("Head: {0}\n", Helpers.ToHex (HeadBytes));
+				sb.AppendFormat ("Head: {0}\n", Helpers.ToHexSring (HeadBytes));
 			} else if (HeadLength > 7 && Head != null) {
 				sb.AppendLine ("Head:");
 				foreach (var entry in Head) {
@@ -126,9 +126,9 @@ namespace Telehash.E3X
 				}
 			}
 			if (Body != null) {
-				sb.AppendFormat ("Body: {0}\n", Helpers.ToHex (Body));
+				sb.AppendFormat ("Body: {0}\n", Helpers.ToHexSring (Body));
 			}
-			sb.AppendFormat ("Raw: {0}\n", Helpers.ToHex(FullPacket));
+			sb.AppendFormat ("Raw: {0}\n", Helpers.ToHexSring(FullPacket));
 			return sb.ToString ();
 		}
 
@@ -151,6 +151,30 @@ namespace Telehash.E3X
 			chacha.ProcessBytes(buffer, 8, buffer.Length - 8, outBuff, 0);
 
 			return Decloak (outBuff);
+		}
+
+		public byte[] Cloak()
+		{
+			Encode ();
+
+			byte[] outData = new byte[FullPacket.Length + 8];
+
+			// Get our nonce
+			Random rnd = new Random ();
+			byte[] nonce = new byte[8];
+			rnd.NextBytes (nonce);
+			// We can't have a leading 0 byte
+			if (nonce [0] == 0) {
+				nonce [0] = 1;
+			}
+
+			var parms = new ParametersWithIV(new KeyParameter(cloakKey), nonce);
+			var chacha = new ChaChaEngine(20);
+			chacha.Init(true, parms);
+			chacha.ProcessBytes (FullPacket, 0, FullPacket.Length, outData, 8);
+			Buffer.BlockCopy (nonce, 0, outData, 0, 8);
+
+			return outData;
 		}
 	}
 }
