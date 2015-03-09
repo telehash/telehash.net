@@ -51,6 +51,8 @@ namespace Telehash.E3X
 		{
 			CS1ARemoteInfo ri = (CS1ARemoteInfo)remoteInfo;
 			ri.EphemeralKeys = ECKeyPair.Generate (SecNamedCurves.GetByName ("secp160r1"));
+			var hashToken = Helpers.SHA256Hash (ri.EphemeralKeys.PublicKey.Take(16).ToArray());
+			ri.Token = hashToken.Take (16).ToArray ();
 		}
 
 		public Packet MessageEncrypt(ICipherSetRemoteInfo remoteInfo, Packet inner)
@@ -60,7 +62,7 @@ namespace Telehash.E3X
 			var agreedValue = ECDHAgree (ri.RemotePublicKey, ri.EphemeralKeys.PrivateKey);
 
 			// Hash the agreed key
-			var hashedValue = SHA256Hash (Helpers.ToByteArray(agreedValue, 20));
+			var hashedValue = Helpers.SHA256Hash (Helpers.ToByteArray(agreedValue, 20));
 
 			// Fold to get the actual key for AES
 			byte[] aesKey = Helpers.Fold (hashedValue);
@@ -120,7 +122,7 @@ namespace Telehash.E3X
 			ECKeyPair remoteEphemeralKeys = ECKeyPair.LoadKeys (SecNamedCurves.GetByName ("secp160r1"), remoteKeyData, null);
 
 			var idAgreement = ECDHAgree (remoteEphemeralKeys.PublicKey, Key.PrivateKey);
-			var agreedHash = SHA256Hash (Helpers.ToByteArray (idAgreement, 20));
+			var agreedHash = Helpers.SHA256Hash (Helpers.ToByteArray (idAgreement, 20));
 			var aesKey = Helpers.FoldOnce(agreedHash);
 
 			// Pad out the IV
@@ -289,19 +291,12 @@ namespace Telehash.E3X
 			return agreement.CalculateAgreement (pubParams);
 		}
 
-		byte[] SHA256Hash(byte[] data)
-		{
-			var shaHash = new Sha256Digest ();
-			shaHash.BlockUpdate (data, 0, data.Length);
-			byte[] hashedValue = new byte[shaHash.GetDigestSize ()];
-			shaHash.DoFinal(hashedValue, 0);
-			return hashedValue;
-		}
-
 		public void Prepare(ICipherSetRemoteInfo info, Packet outer)
 		{
 			var ri = (CS1ARemoteInfo)info;
 
+			ri.RemoteEphemeralKey = new byte[21];
+			Buffer.BlockCopy (outer.Parent.Body, 0, ri.RemoteEphemeralKey, 0, 21);
 
 			var secret = Helpers.ToByteArray(ECDHAgree (ri.RemoteEphemeralKey, ri.EphemeralKeys.PrivateKey), 20);
 			var shaBuffer = new byte[secret.Length + ri.RemoteEphemeralKey.Length + ri.EphemeralKeys.PublicKey.Length];
@@ -309,13 +304,14 @@ namespace Telehash.E3X
 			Buffer.BlockCopy (secret, 0, shaBuffer, 0, secret.Length);
 			Buffer.BlockCopy (ri.RemoteEphemeralKey, 0, shaBuffer, secret.Length, ri.RemoteEphemeralKey.Length);
 			Buffer.BlockCopy (ri.EphemeralKeys.PublicKey, 0, shaBuffer, secret.Length + ri.RemoteEphemeralKey.Length, ri.EphemeralKeys.PublicKey.Length);
-			ri.EncryptionKey = Helpers.FoldOnce (SHA256Hash (shaBuffer));
+			ri.DecryptionKey = Helpers.FoldOnce (Helpers.SHA256Hash (shaBuffer));
 
 			Buffer.BlockCopy (ri.EphemeralKeys.PublicKey, 0, shaBuffer, secret.Length, ri.EphemeralKeys.PublicKey.Length);
 			Buffer.BlockCopy (ri.RemoteEphemeralKey, 0, shaBuffer, secret.Length + ri.EphemeralKeys.PublicKey.Length, ri.RemoteEphemeralKey.Length);
-			ri.DecryptionKey = Helpers.FoldOnce (SHA256Hash (shaBuffer));
+			ri.EncryptionKey = Helpers.FoldOnce (Helpers.SHA256Hash (shaBuffer));
 
-			ri.IV = 1;
+			var rnd = new SecureRandom ();
+			ri.IV = (uint)rnd.NextInt ();
 
 		}
 	}

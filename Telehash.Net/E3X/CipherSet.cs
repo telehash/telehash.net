@@ -20,6 +20,7 @@ namespace Telehash.E3X
 
 	public interface ICipherSetRemoteInfo
 	{
+		byte[] Token { get; set; }
 	}
 }
 

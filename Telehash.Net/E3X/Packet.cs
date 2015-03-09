@@ -21,6 +21,11 @@ namespace Telehash.E3X
 			0x5a, 0x47, 0x82, 0x95, 0x6c, 0xa9, 0x45, 0x9a
 		};
 
+		/// <summary>
+		/// If this Packet was inside another Packet's Body, or decrypted from another Packet, this is the parent Packet.
+		/// </summary>
+		/// <value>The parent Packet instance.</value>
+		public Packet Parent { get; set; }
 		public ushort HeadLength { get; set; }
 		public byte[] FullPacket { get; set; }
 		public JObject Head { get; set; }

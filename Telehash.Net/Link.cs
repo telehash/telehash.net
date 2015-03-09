@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using Telehash.E3X;
 
@@ -33,11 +34,16 @@ namespace Telehash
 
 		public bool Handshake(Packet outer)
 		{
+			var linkData = Packet.DecodePacket (outer.Body);
 			if (Exchange == null) {
-				Exchange = new Exchange (Mesh.Self, 0x1a, outer.Body);
+				Exchange = new Exchange (Mesh.Self, 0x1a, linkData.Body);
 				Exchange.OutAt = (uint)outer.Head ["at"];
+
+				var tokenData = outer.Parent.Body.Take (16).ToArray ();
+				var tokenHash = Helpers.SHA256Hash (tokenData).Take (16).ToArray ();
+				Token = Helpers.ToHexSring (tokenHash);
 			}
-			if (!Exchange.Verify (outer)) {
+			if (!Exchange.Verify (outer.Parent)) {
 				return false;
 			}
 			Exchange.Sync (outer);

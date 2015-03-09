@@ -14,7 +14,11 @@ namespace Telehash.E3X
 		}
 
 		public Self Local { get; set; }
-		public byte[] Token { get; set; }
+		public byte[] Token {
+			get {
+				return remoteInfo.Token;
+			}
+		}
 		public uint OutAt { get; set; }
 		public HashOrder Order { get; set; }
 		public uint At { get; set; }
@@ -24,8 +28,6 @@ namespace Telehash.E3X
 
 		public Exchange (Self localIdentity, byte csid, byte[] publicKey)
 		{
-			Token = new byte[16];
-
 			Local = localIdentity;
 
 			cipherSet = localIdentity.CipherSets [csid];
@@ -42,9 +44,11 @@ namespace Telehash.E3X
 				if (publicKey [i] > idKey [i]) {
 					Order = HashOrder.High;
 					At = 1;
+					break;
 				} else {
 					Order = HashOrder.Low;
 					At = 2;
+					break;
 				}
 			}
 		}

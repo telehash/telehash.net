@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Org.BouncyCastle.Crypto.Digests;
 
-namespace Telehash.E3X
+namespace Telehash
 {
 	public class Helpers
 	{
@@ -62,6 +63,15 @@ namespace Telehash.E3X
 				return data.Skip (1).Take (expectedLength).ToArray ();
 			}
 			return data;
+		}
+
+		public static byte[] SHA256Hash(byte[] data)
+		{
+			var shaHash = new Sha256Digest ();
+			shaHash.BlockUpdate (data, 0, data.Length);
+			byte[] hashedValue = new byte[shaHash.GetDigestSize ()];
+			shaHash.DoFinal(hashedValue, 0);
+			return hashedValue;
 		}
 	}
 }

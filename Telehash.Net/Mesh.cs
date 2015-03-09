@@ -39,6 +39,7 @@ namespace Telehash
 		{
 			JArray keys = (JArray)JToken.Parse (File.ReadAllText (jsonIdentityFilePath));
 
+
 			foreach (var idEntry in keys) {
 				if (idEntry ["cs"].Value<string>() == "1a") {
 					// Create a 1a
@@ -177,6 +178,7 @@ namespace Telehash
 					DebugLog ("There was no inner packet\n");
 					return;
 				}
+				inner.Parent = packet;
 				DebugLog ("Decrypted");
 				DebugLog (inner.ToDebugString ());
 
@@ -219,7 +221,9 @@ namespace Telehash
 							DebugLog ("Could not finish handshake");
 							return;
 						}
-						LinkUp (curLink);
+						if (LinkUp != null) {
+							LinkUp (curLink);
+						}
 						DebugLog ("Start using channels?");
 					}
 					return;
@@ -232,13 +236,16 @@ namespace Telehash
 						DebugLog ("Invalid Handshake for Link");
 						return;
 					}
-					newLink.Pipes.Add (pipe);
+					newLink.AddPipe (pipe);
 
 					// We index both the hashname and the Token for different lookup cases
 					Links.Add (fromHashname, newLink);
+					DebugLog ("Token for new Link is " + Helpers.ToHexSring(newLink.Exchange.Token));
 					Links.Add (Helpers.ToHexSring(newLink.Exchange.Token), newLink);
 
-					LinkUp (newLink);
+					if (LinkUp != null) {
+						LinkUp (newLink);
+					}
 				}
 			} else if (packet.HeadLength == 0) {
 
@@ -246,10 +253,14 @@ namespace Telehash
 				Link link;
 				if (Links.TryGetValue (Helpers.ToHexSring (token), out link)) {
 					var outer = link.Exchange.Receive (packet);
+					if (outer == null) {
+						DebugLog ("Unable to decrypt a packet");
+						// TODO:  Do we shutdown the link or exchange?  Probably not, DoS
+					}
 					DebugLog ("We got a channel packet: " + outer.ToDebugString ());
 					link.Receive (outer, pipe);
 				} else {
-					DebugLog ("No known link for channel packet");
+					DebugLog ("No known link for channel packet token: " + Helpers.ToHexSring (token));
 					return;
 				}
 			}
@@ -259,7 +270,9 @@ namespace Telehash
 
 		public void DebugLog(string message)
 		{
-			DebugLogEvent (message);
+			if (DebugLogEvent != null) {
+				DebugLogEvent (message);
+			}
 		}
 	}
 }
